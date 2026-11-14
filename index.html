@@ -385,63 +385,50 @@
             }
         }
 
-        // --- Copy & Redirect Logic ---
+               // --- Copy & Redirect Logic ---
         window.copyAndRedirect = function() {
             const textToCopy = suggestedReviews[currentReviewIndex];
-            const targetUrl = 'https://maps.app.goo.gl/eKtqdvd7qvDtHMHM7';
+            // Yeh aapka perfect direct review link hai
+            const targetUrl = 'https://search.google.com/local/writereview?placeid=ChIJn2QmXwAFDTkRTE39YvuJDzA'; 
             const btnText = document.getElementById('btn-text');
+            const googleBtn = document.getElementById('google-btn');
             
             // Visual feedback
-            const originalText = btnText.innerText;
-            btnText.innerText = 'Copied! Redirecting...';
-            document.getElementById('google-btn').classList.add('bg-green-600');
-            document.getElementById('google-btn').classList.remove('bg-[#4285F4]');
+            btnText.innerText = 'Redirecting...';
+            googleBtn.classList.remove('bg-[#4285F4]');
+            googleBtn.classList.add('bg-green-600');
 
-            // Method 1: Modern Clipboard API
+            // Localhost aur HTTP ke liye Fallback (Copy karne ke liye)
+            const fallbackCopy = () => {
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback copy failed', err);
+                }
+                document.body.removeChild(textArea);
+            };
+
+            // Pehle modern clipboard try karo
             if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(textToCopy)
-                    .then(() => performRedirect(targetUrl))
-                    .catch(() => fallbackCopy(textToCopy, targetUrl));
+                navigator.clipboard.writeText(textToCopy).catch(() => {
+                    fallbackCopy();
+                });
             } else {
-                // Method 2: Legacy fallback
-                fallbackCopy(textToCopy, targetUrl);
+                fallbackCopy();
             }
-        };
 
-        function fallbackCopy(text, url) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                console.error('Fallback copy failed', err);
-            }
-            document.body.removeChild(textArea);
-            performRedirect(url);
-        }
-
-        function performRedirect(url) {
-            // Short delay to let the user see the "Copied!" state
+            // Same tab me redirect karo taaki mobile pop-up block na kare
             setTimeout(() => {
-                // Mobile browsers strongly prefer _blank for external maps links 
-                // to trigger the OS app intent properly without losing the PWA/browser context.
-                window.open(url, '_blank');
-                
-                // Reset button visual state after redirect attempt
-                setTimeout(() => {
-                    const btnText = document.getElementById('btn-text');
-                    if(btnText) btnText.innerText = 'Copy & Post on Google';
-                    document.getElementById('google-btn').classList.remove('bg-green-600');
-                    document.getElementById('google-btn').classList.add('bg-[#4285F4]');
-                }, 2000);
-            }, 600);
-        }
+                window.location.href = targetUrl;
+            }, 500);
+        };
 
         // Initial setup
         updateCarouselUI();
